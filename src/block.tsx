@@ -120,51 +120,21 @@ function FallbackSkeleton() {
   );
 }
 
-// Skeleton Model Component with Error Handling
+// Skeleton Model Component with proper hook usage
 function SkeletonModel({ modelUrl }: { modelUrl: string }) {
-  const [modelError, setModelError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [showFallback, setShowFallback] = useState(false);
   const meshRef = useRef<THREE.Group>(null);
 
-  // Custom hook to handle GLB loading with error catching
-  const [gltf, setGltf] = useState<any>(null);
+  // Use the hook properly at the top level
+  let gltf: any = null;
+  let error: any = null;
 
-  useEffect(() => {
-    let mounted = true;
-    setIsLoading(true);
-    setModelError(null);
-
-    const loadModel = async () => {
-      try {
-        // Test if the URL is accessible first
-        const response = await fetch(modelUrl, { method: 'HEAD' });
-        if (!response.ok) {
-          throw new Error(`Model not found: ${response.status} ${response.statusText}`);
-        }
-
-        // If URL is accessible, load with useGLTF
-        const { useGLTF } = await import('@react-three/drei');
-        const gltfData = useGLTF(modelUrl);
-        
-        if (mounted) {
-          setGltf(gltfData);
-          setIsLoading(false);
-        }
-      } catch (error) {
-        console.warn('Failed to load 3D model:', error);
-        if (mounted) {
-          setModelError(error instanceof Error ? error.message : 'Failed to load model');
-          setIsLoading(false);
-        }
-      }
-    };
-
-    loadModel();
-
-    return () => {
-      mounted = false;
-    };
-  }, [modelUrl]);
+  try {
+    gltf = useGLTF(modelUrl);
+  } catch (e) {
+    error = e;
+    console.warn('Failed to load 3D model, using fallback:', e);
+  }
 
   useFrame((state) => {
     if (meshRef.current) {
@@ -188,26 +158,15 @@ function SkeletonModel({ modelUrl }: { modelUrl: string }) {
     }
   }, [gltf]);
 
-  // Show loading state
-  if (isLoading) {
-    return (
-      <Html center>
-        <div style={{ 
-          color: 'white', 
-          fontSize: '16px',
-          background: 'rgba(0,0,0,0.7)',
-          padding: '15px 20px',
-          borderRadius: '10px',
-          textAlign: 'center'
-        }}>
-          <div>🔄 Chargement du modèle 3D...</div>
-        </div>
-      </Html>
-    );
-  }
+  // Handle error or missing model
+  useEffect(() => {
+    if (error) {
+      setShowFallback(true);
+    }
+  }, [error]);
 
   // Show error state with fallback
-  if (modelError) {
+  if (error || showFallback) {
     return (
       <group>
         <Html position={[0, 2.5, 0]} center>
@@ -239,35 +198,44 @@ function SkeletonModel({ modelUrl }: { modelUrl: string }) {
     );
   }
 
-  // Final fallback
-  return <FallbackSkeleton />;
+  // Loading state
+  return (
+    <Html center>
+      <div style={{ 
+        color: 'white', 
+        fontSize: '16px',
+        background: 'rgba(0,0,0,0.7)',
+        padding: '15px 20px',
+        borderRadius: '10px',
+        textAlign: 'center'
+      }}>
+        <div>🔄 Chargement du modèle 3D...</div>
+      </div>
+    </Html>
+  );
 }
 
-// Error Boundary Component
-class SkeletonErrorBoundary extends React.Component<
-  { children: React.ReactNode },
-  { hasError: boolean; error?: Error }
-> {
-  constructor(props: { children: React.ReactNode }) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.warn('3D Model Error:', error, errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return <FallbackSkeleton />;
-    }
-
-    return this.props.children;
-  }
+// Safe Model Loader with Error Boundary
+function SafeSkeletonModel({ modelUrl }: { modelUrl: string }) {
+  return (
+    <Suspense
+      fallback={
+        <Html center>
+          <div style={{ 
+            color: 'white', 
+            fontSize: '18px',
+            background: 'rgba(0,0,0,0.7)',
+            padding: '20px',
+            borderRadius: '10px'
+          }}>
+            Chargement du modèle 3D...
+          </div>
+        </Html>
+      }
+    >
+      <SkeletonModel modelUrl={modelUrl} />
+    </Suspense>
+  );
 }
 
 // Interactive Bone Point Component
@@ -519,55 +487,39 @@ const Block: React.FC<BlockProps> = ({ title = "Anatomie 3D - Reconnaissance des
             />
             <pointLight position={[-10, -10, -5]} intensity={0.3} />
 
-            <Suspense fallback={
-              <Html center>
-                <div style={{ 
-                  color: 'white', 
-                  fontSize: '18px',
-                  background: 'rgba(0,0,0,0.7)',
-                  padding: '20px',
-                  borderRadius: '10px'
-                }}>
-                  Chargement du modèle 3D...
-                </div>
-              </Html>
-            }>
-              {/* 3D Skeleton Model with Error Boundary */}
-              <SkeletonErrorBoundary>
-                <SkeletonModel modelUrl="https://content.mext.app/uploads/c51d7e81-bf01-477e-93b2-61951d133344.glb" />
-              </SkeletonErrorBoundary>
-              
-              {/* Interactive Bone Points */}
-              {bones.map(bone => (
-                <group key={bone.id}>
-                  <BonePoint
-                    bone={bone}
-                    userAnswer={userAnswers[bone.id]}
-                    gameState={gameState}
-                    isCorrect={results[bone.id]}
-                    onDrop={() => setSelectedBone(bone.id)}
-                    onRemove={removeBoneAnswer}
-                  />
-                  
-                  {/* Selection indicator */}
-                  {selectedBone === bone.id && (
-                    <mesh position={bone.position}>
-                      <ringGeometry args={[0.08, 0.1, 16]} />
-                      <meshBasicMaterial color="#f39c12" transparent opacity={0.8} />
-                    </mesh>
-                  )}
-                  
-                  {/* Clickable area for bone selection */}
-                  <mesh 
-                    position={bone.position}
-                    onClick={() => gameState === 'playing' && setSelectedBone(bone.id)}
-                    visible={false}
-                  >
-                    <sphereGeometry args={[0.1]} />
+            {/* 3D Skeleton Model with Safe Loading */}
+            <SafeSkeletonModel modelUrl="https://content.mext.app/uploads/c51d7e81-bf01-477e-93b2-61951d133344.glb" />
+            
+            {/* Interactive Bone Points */}
+            {bones.map(bone => (
+              <group key={bone.id}>
+                <BonePoint
+                  bone={bone}
+                  userAnswer={userAnswers[bone.id]}
+                  gameState={gameState}
+                  isCorrect={results[bone.id]}
+                  onDrop={() => setSelectedBone(bone.id)}
+                  onRemove={removeBoneAnswer}
+                />
+                
+                {/* Selection indicator */}
+                {selectedBone === bone.id && (
+                  <mesh position={bone.position}>
+                    <ringGeometry args={[0.08, 0.1, 16]} />
+                    <meshBasicMaterial color="#f39c12" transparent opacity={0.8} />
                   </mesh>
-                </group>
-              ))}
-            </Suspense>
+                )}
+                
+                {/* Clickable area for bone selection */}
+                <mesh 
+                  position={bone.position}
+                  onClick={() => gameState === 'playing' && setSelectedBone(bone.id)}
+                  visible={false}
+                >
+                  <sphereGeometry args={[0.1]} />
+                </mesh>
+              </group>
+            ))}
 
             <OrbitControls
               enablePan={true}
