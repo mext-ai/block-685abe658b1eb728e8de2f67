@@ -29,7 +29,7 @@ const bones: Bone[] = [
   { id: 'pelvis', name: 'Bassin', position: [0, -0.0, 0] },
   { id: 'femur', name: 'Fémur', position: [0.13, -0.35, 0] },
   { id: 'tibia', name: 'Tibia', position: [0.08, -0.65, -0.04] },
-  { id: 'fibula', name: 'Péroné', position: [-0.1, -0.65, -0.04] }
+  { id: 'fibula', name: 'Péroné', position: [-0.12, -0.65, -0.04] }
 ];
 
 // Skeleton Model Component with proper error handling
