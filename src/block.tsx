@@ -84,7 +84,7 @@ function SkeletonModel({ modelUrl }: { modelUrl: string }) {
   }
 
   return (
-    <group ref={meshRef} position={[0, -0.5, 0]} scale={[0.2, 0.2, 0.2]}>
+    <group ref={meshRef} position={[0, -0.25, 0]} scale={[0.25, 0.25, 0.25]}>
       <primitive object={scene} />
     </group>
   );
