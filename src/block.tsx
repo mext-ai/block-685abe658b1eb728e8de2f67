@@ -18,18 +18,18 @@ interface Bone {
 
 // Updated bone positions to match the actual GLB skeleton model
 const bones: Bone[] = [
-  { id: 'skull', name: 'Crâne', position: [0, 0.8, 0] },
-  { id: 'clavicle', name: 'Clavicule', position: [0.15, 0.65, 0] },
+  { id: 'skull', name: 'Crâne', position: [0, 1.1, 0] },
+  { id: 'clavicle', name: 'Clavicule', position: [0.15, 0.7, 0] },
   { id: 'sternum', name: 'Sternum', position: [0, 0.5, 0.05] },
-  { id: 'ribs', name: 'Côtes', position: [0.2, 0.45, 0] },
+  { id: 'ribs', name: 'Côtes', position: [0.18, 0.45, 0] },
   { id: 'humerus', name: 'Humérus', position: [-0.25, 0.35, 0] },
   { id: 'radius', name: 'Radius', position: [-0.25, 0.05, 0.05] },
   { id: 'ulna', name: 'Cubitus', position: [-0.25, 0.05, -0.05] },
   { id: 'spine', name: 'Colonne vertébrale', position: [0, 0.2, -0.05] },
-  { id: 'pelvis', name: 'Bassin', position: [0, -0.1, 0] },
-  { id: 'femur', name: 'Fémur', position: [0.1, -0.35, 0] },
-  { id: 'tibia', name: 'Tibia', position: [0.1, -0.65, 0.03] },
-  { id: 'fibula', name: 'Péroné', position: [0.08, -0.65, -0.03] }
+  { id: 'pelvis', name: 'Bassin', position: [0, -0.0, 0] },
+  { id: 'femur', name: 'Fémur', position: [0.13, -0.35, 0] },
+  { id: 'tibia', name: 'Tibia', position: [0.08, -0.65, -0.04] },
+  { id: 'fibula', name: 'Péroné', position: [-0.1, -0.65, -0.04] }
 ];
 
 // Skeleton Model Component with proper error handling
@@ -38,7 +38,7 @@ function SkeletonModel({ modelUrl }: { modelUrl: string }) {
   const [modelError, setModelError] = useState(false);
   
   // Use GLB model with error handling
-  const { scene, error } = useGLTF(modelUrl, undefined, undefined, (error) => {
+  const { scene } = useGLTF(modelUrl, undefined, undefined, (error) => {
     console.error('Failed to load GLB model:', error);
     setModelError(true);
   });
@@ -61,12 +61,13 @@ function SkeletonModel({ modelUrl }: { modelUrl: string }) {
           // Enhance material properties
           if (child.material) {
             const material = child.material as THREE.MeshStandardMaterial;
-            material.roughness = 0.4;
-            material.metalness = 0.1;
+            material.roughness = 0.7;
+            material.metalness = 0.0;
             
-            // Make bones slightly more visible
+            // Ensure proper bone coloring - remove the multiplier that was washing out the model
             if (material.color) {
-              material.color.multiplyScalar(1.2);
+              // Keep original color but ensure it's not too bright
+              material.color.setHex(0xf5f5dc); // Bone color (beige)
             }
           }
         }
@@ -75,7 +76,7 @@ function SkeletonModel({ modelUrl }: { modelUrl: string }) {
   }, [scene]);
 
   // If there's an error, throw it to be caught by error boundary
-  if (error || modelError) {
+  if (modelError) {
     throw new Error('Failed to load 3D skeleton model');
   }
 
@@ -84,7 +85,7 @@ function SkeletonModel({ modelUrl }: { modelUrl: string }) {
   }
 
   return (
-    <group ref={meshRef} position={[0, 0, 0]} scale={[0.25, 0.25, 0.25]}>
+    <group ref={meshRef} position={[0, 0, 0]} scale={[0.3, 0.3, 0.3]}>
       <primitive object={scene} />
     </group>
   );
@@ -201,7 +202,7 @@ function BonePoint({
     if (gameState === 'finished') {
       return isCorrect ? '#27ae60' : '#e74c3c';
     }
-    return userAnswer ? '#3498db' : hovered ? '#f39c12' : '#95a5a6';
+    return userAnswer ? '#3498db' : hovered ? '#f39c12' : '#DD1414';
   };
 
   return (
@@ -430,11 +431,11 @@ const Block: React.FC<BlockProps> = ({ title = "Anatomie 3D - Reconnaissance des
           >
             <SceneSetup />
             
-            {/* Enhanced Lighting */}
-            <ambientLight intensity={0.5} />
+            {/* Enhanced Lighting Setup */}
+            <ambientLight intensity={0.4} />
             <directionalLight
-              position={[8, 8, 5]}
-              intensity={1.2}
+              position={[5, 10, 5]}
+              intensity={0.6}
               castShadow
               shadow-mapSize-width={2048}
               shadow-mapSize-height={2048}
@@ -444,8 +445,13 @@ const Block: React.FC<BlockProps> = ({ title = "Anatomie 3D - Reconnaissance des
               shadow-camera-top={10}
               shadow-camera-bottom={-10}
             />
-            <pointLight position={[-5, -5, -5]} intensity={0.4} color="#ffffff" />
-            <pointLight position={[5, 5, 5]} intensity={0.3} color="#e3f2fd" />
+            <directionalLight
+              position={[-3, -3, 2]}
+              intensity={0.2}
+              color="#ffeaa7"
+            />
+            <pointLight position={[2, 3, 2]} intensity={0.3} color="#ffffff" />
+            <pointLight position={[-2, -3, -2]} intensity={0.2} color="#74b9ff" />
 
             {/* 3D Skeleton Model */}
             <SafeSkeletonModel modelUrl="https://content.mext.app/uploads/c51d7e81-bf01-477e-93b2-61951d133344.glb" />
