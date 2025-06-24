@@ -16,225 +16,159 @@ interface Bone {
   userAnswer?: string;
 }
 
-// 3D bone positions (approximate positions for a human skeleton)
+// Updated bone positions to match the actual GLB skeleton model
 const bones: Bone[] = [
-  { id: 'skull', name: 'Crâne', position: [0, 1.7, 0] },
-  { id: 'clavicle', name: 'Clavicule', position: [0.3, 1.4, 0] },
-  { id: 'sternum', name: 'Sternum', position: [0, 1.2, 0.1] },
-  { id: 'ribs', name: 'Côtes', position: [0.4, 1.1, 0] },
-  { id: 'humerus', name: 'Humérus', position: [-0.4, 1.0, 0] },
-  { id: 'radius', name: 'Radius', position: [-0.4, 0.6, 0.1] },
-  { id: 'ulna', name: 'Cubitus', position: [-0.4, 0.6, -0.1] },
-  { id: 'spine', name: 'Colonne vertébrale', position: [0, 0.8, -0.1] },
-  { id: 'pelvis', name: 'Bassin', position: [0, 0.2, 0] },
-  { id: 'femur', name: 'Fémur', position: [0.2, -0.3, 0] },
-  { id: 'tibia', name: 'Tibia', position: [0.2, -0.8, 0.05] },
-  { id: 'fibula', name: 'Péroné', position: [0.15, -0.8, -0.05] }
+  { id: 'skull', name: 'Crâne', position: [0, 0.8, 0] },
+  { id: 'clavicle', name: 'Clavicule', position: [0.15, 0.65, 0] },
+  { id: 'sternum', name: 'Sternum', position: [0, 0.5, 0.05] },
+  { id: 'ribs', name: 'Côtes', position: [0.2, 0.45, 0] },
+  { id: 'humerus', name: 'Humérus', position: [-0.25, 0.35, 0] },
+  { id: 'radius', name: 'Radius', position: [-0.25, 0.05, 0.05] },
+  { id: 'ulna', name: 'Cubitus', position: [-0.25, 0.05, -0.05] },
+  { id: 'spine', name: 'Colonne vertébrale', position: [0, 0.2, -0.05] },
+  { id: 'pelvis', name: 'Bassin', position: [0, -0.1, 0] },
+  { id: 'femur', name: 'Fémur', position: [0.1, -0.35, 0] },
+  { id: 'tibia', name: 'Tibia', position: [0.1, -0.65, 0.03] },
+  { id: 'fibula', name: 'Péroné', position: [0.08, -0.65, -0.03] }
 ];
 
-// Fallback Skeleton Component (basic geometric skeleton)
-function FallbackSkeleton() {
+// Skeleton Model Component with proper error handling
+function SkeletonModel({ modelUrl }: { modelUrl: string }) {
   const meshRef = useRef<THREE.Group>(null);
-
-  useFrame((state) => {
-    if (meshRef.current) {
-      meshRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.3) * 0.1;
-    }
+  const [modelError, setModelError] = useState(false);
+  
+  // Use GLB model with error handling
+  const { scene, error } = useGLTF(modelUrl, undefined, undefined, (error) => {
+    console.error('Failed to load GLB model:', error);
+    setModelError(true);
   });
 
-  return (
-    <group ref={meshRef} position={[0, -0.5, 0]} scale={[0.8, 0.8, 0.8]}>
-      {/* Basic geometric skeleton */}
-      {/* Head */}
-      <mesh position={[0, 1.7, 0]}>
-        <sphereGeometry args={[0.12, 16, 16]} />
-        <meshStandardMaterial color="#f0f0f0" />
-      </mesh>
-      
-      {/* Spine */}
-      <mesh position={[0, 0.8, 0]}>
-        <cylinderGeometry args={[0.03, 0.03, 1.8, 8]} />
-        <meshStandardMaterial color="#e0e0e0" />
-      </mesh>
-      
-      {/* Rib cage */}
-      {[0.2, 0.4, 0.6].map((y, i) => (
-        <group key={i}>
-          <mesh position={[0.3, 1.2 - y, 0]} rotation={[0, 0, -0.3]}>
-            <torusGeometry args={[0.25, 0.02, 4, 12]} />
-            <meshStandardMaterial color="#d0d0d0" />
-          </mesh>
-          <mesh position={[-0.3, 1.2 - y, 0]} rotation={[0, 0, 0.3]}>
-            <torusGeometry args={[0.25, 0.02, 4, 12]} />
-            <meshStandardMaterial color="#d0d0d0" />
-          </mesh>
-        </group>
-      ))}
-      
-      {/* Arms */}
-      <mesh position={[-0.4, 1.0, 0]}>
-        <cylinderGeometry args={[0.03, 0.03, 0.6, 8]} />
-        <meshStandardMaterial color="#e0e0e0" />
-      </mesh>
-      <mesh position={[0.4, 1.0, 0]}>
-        <cylinderGeometry args={[0.03, 0.03, 0.6, 8]} />
-        <meshStandardMaterial color="#e0e0e0" />
-      </mesh>
-      
-      {/* Forearms */}
-      <mesh position={[-0.4, 0.6, 0]}>
-        <cylinderGeometry args={[0.025, 0.025, 0.5, 8]} />
-        <meshStandardMaterial color="#e0e0e0" />
-      </mesh>
-      <mesh position={[0.4, 0.6, 0]}>
-        <cylinderGeometry args={[0.025, 0.025, 0.5, 8]} />
-        <meshStandardMaterial color="#e0e0e0" />
-      </mesh>
-      
-      {/* Pelvis */}
-      <mesh position={[0, 0.2, 0]}>
-        <cylinderGeometry args={[0.15, 0.12, 0.2, 8]} />
-        <meshStandardMaterial color="#e0e0e0" />
-      </mesh>
-      
-      {/* Legs */}
-      <mesh position={[-0.1, -0.3, 0]}>
-        <cylinderGeometry args={[0.04, 0.04, 0.8, 8]} />
-        <meshStandardMaterial color="#e0e0e0" />
-      </mesh>
-      <mesh position={[0.1, -0.3, 0]}>
-        <cylinderGeometry args={[0.04, 0.04, 0.8, 8]} />
-        <meshStandardMaterial color="#e0e0e0" />
-      </mesh>
-      
-      {/* Shins */}
-      <mesh position={[-0.1, -0.8, 0]}>
-        <cylinderGeometry args={[0.035, 0.035, 0.6, 8]} />
-        <meshStandardMaterial color="#e0e0e0" />
-      </mesh>
-      <mesh position={[0.1, -0.8, 0]}>
-        <cylinderGeometry args={[0.035, 0.035, 0.6, 8]} />
-        <meshStandardMaterial color="#e0e0e0" />
-      </mesh>
-    </group>
-  );
-}
-
-// Skeleton Model Component with proper hook usage
-function SkeletonModel({ modelUrl }: { modelUrl: string }) {
-  const [showFallback, setShowFallback] = useState(false);
-  const meshRef = useRef<THREE.Group>(null);
-
-  // Use the hook properly at the top level
-  let gltf: any = null;
-  let error: any = null;
-
-  try {
-    gltf = useGLTF(modelUrl);
-  } catch (e) {
-    error = e;
-    console.warn('Failed to load 3D model, using fallback:', e);
-  }
-
   useFrame((state) => {
     if (meshRef.current) {
-      meshRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.3) * 0.1;
+      // Subtle idle animation
+      meshRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.2) * 0.05;
     }
   });
 
   useEffect(() => {
-    if (gltf?.scene) {
-      gltf.scene.traverse((child: any) => {
+    if (scene) {
+      // Configure the loaded model
+      scene.traverse((child: any) => {
         if (child instanceof THREE.Mesh) {
           child.castShadow = true;
           child.receiveShadow = true;
+          
+          // Enhance material properties
           if (child.material) {
             const material = child.material as THREE.MeshStandardMaterial;
-            material.roughness = 0.3;
+            material.roughness = 0.4;
             material.metalness = 0.1;
+            
+            // Make bones slightly more visible
+            if (material.color) {
+              material.color.multiplyScalar(1.2);
+            }
           }
         }
       });
     }
-  }, [gltf]);
+  }, [scene]);
 
-  // Handle error or missing model
-  useEffect(() => {
-    if (error) {
-      setShowFallback(true);
+  // If there's an error, throw it to be caught by error boundary
+  if (error || modelError) {
+    throw new Error('Failed to load 3D skeleton model');
+  }
+
+  if (!scene) {
+    return null; // Loading handled by Suspense
+  }
+
+  return (
+    <group ref={meshRef} position={[0, -0.5, 0]} scale={[0.8, 0.8, 0.8]}>
+      <primitive object={scene} />
+    </group>
+  );
+}
+
+// Error Boundary for Model Loading
+class ModelErrorBoundary extends React.Component<
+  { children: React.ReactNode; fallback: React.ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: { children: React.ReactNode; fallback: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('Model loading error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback;
     }
-  }, [error]);
 
-  // Show error state with fallback
-  if (error || showFallback) {
-    return (
-      <group>
-        <Html position={[0, 2.5, 0]} center>
-          <div style={{ 
-            color: '#f39c12', 
-            fontSize: '14px',
-            background: 'rgba(243, 156, 18, 0.2)',
-            padding: '10px 15px',
-            borderRadius: '8px',
-            textAlign: 'center',
-            border: '1px solid rgba(243, 156, 18, 0.5)',
-            maxWidth: '300px'
-          }}>
-            ⚠️ Modèle 3D indisponible<br/>
-            <small>Utilisation du squelette de base</small>
-          </div>
-        </Html>
-        <FallbackSkeleton />
-      </group>
-    );
+    return this.props.children;
   }
+}
 
-  // Show loaded model
-  if (gltf?.scene) {
-    return (
-      <group ref={meshRef} position={[0, -1, 0]} scale={[1, 1, 1]}>
-        <primitive object={gltf.scene} />
-      </group>
-    );
-  }
-
-  // Loading state
+// Loading Component
+function LoadingModel() {
   return (
     <Html center>
       <div style={{ 
         color: 'white', 
-        fontSize: '16px',
-        background: 'rgba(0,0,0,0.7)',
-        padding: '15px 20px',
-        borderRadius: '10px',
-        textAlign: 'center'
+        fontSize: '18px',
+        background: 'rgba(0,0,0,0.8)',
+        padding: '20px 30px',
+        borderRadius: '15px',
+        textAlign: 'center',
+        border: '2px solid rgba(255,255,255,0.3)'
       }}>
-        <div>🔄 Chargement du modèle 3D...</div>
+        <div style={{ fontSize: '24px', marginBottom: '10px' }}>🦴</div>
+        <div>Chargement du squelette 3D...</div>
       </div>
     </Html>
   );
 }
 
-// Safe Model Loader with Error Boundary
+// Error Component
+function ModelError() {
+  return (
+    <Html center>
+      <div style={{ 
+        color: '#e74c3c', 
+        fontSize: '16px',
+        background: 'rgba(231, 76, 60, 0.1)',
+        padding: '20px 30px',
+        borderRadius: '15px',
+        textAlign: 'center',
+        border: '2px solid rgba(231, 76, 60, 0.5)',
+        maxWidth: '300px'
+      }}>
+        <div style={{ fontSize: '24px', marginBottom: '10px' }}>⚠️</div>
+        <div><strong>Erreur de chargement</strong></div>
+        <div style={{ fontSize: '14px', marginTop: '8px', opacity: 0.8 }}>
+          Impossible de charger le modèle 3D
+        </div>
+      </div>
+    </Html>
+  );
+}
+
+// Safe Model Loader
 function SafeSkeletonModel({ modelUrl }: { modelUrl: string }) {
   return (
-    <Suspense
-      fallback={
-        <Html center>
-          <div style={{ 
-            color: 'white', 
-            fontSize: '18px',
-            background: 'rgba(0,0,0,0.7)',
-            padding: '20px',
-            borderRadius: '10px'
-          }}>
-            Chargement du modèle 3D...
-          </div>
-        </Html>
-      }
-    >
-      <SkeletonModel modelUrl={modelUrl} />
-    </Suspense>
+    <ModelErrorBoundary fallback={<ModelError />}>
+      <Suspense fallback={<LoadingModel />}>
+        <SkeletonModel modelUrl={modelUrl} />
+      </Suspense>
+    </ModelErrorBoundary>
   );
 }
 
@@ -257,6 +191,12 @@ function BonePoint({
   const [hovered, setHovered] = useState(false);
   const meshRef = useRef<THREE.Mesh>(null);
 
+  useFrame((state) => {
+    if (meshRef.current && hovered) {
+      meshRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 4) * 0.1;
+    }
+  });
+
   const getColor = () => {
     if (gameState === 'finished') {
       return isCorrect ? '#27ae60' : '#e74c3c';
@@ -272,15 +212,25 @@ function BonePoint({
         onPointerEnter={() => setHovered(true)}
         onPointerLeave={() => setHovered(false)}
         onClick={() => gameState === 'playing' && userAnswer && onRemove(bone.id)}
-        scale={hovered ? 1.2 : 1}
+        scale={hovered ? 1.3 : 1}
       >
-        <sphereGeometry args={[0.03, 8, 8]} />
+        <sphereGeometry args={[0.025, 12, 12]} />
         <meshStandardMaterial 
           color={getColor()} 
           emissive={getColor()} 
-          emissiveIntensity={0.2}
+          emissiveIntensity={0.3}
           transparent
-          opacity={0.8}
+          opacity={0.9}
+        />
+      </mesh>
+
+      {/* Pulsing ring for better visibility */}
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.035, 0.045, 16]} />
+        <meshBasicMaterial 
+          color={getColor()} 
+          transparent 
+          opacity={hovered ? 0.6 : 0.3}
         />
       </mesh>
 
@@ -297,14 +247,15 @@ function BonePoint({
           <div
             style={{
               background: 'rgba(255, 255, 255, 0.95)',
-              padding: '4px 8px',
-              borderRadius: '12px',
-              fontSize: '12px',
+              padding: '5px 10px',
+              borderRadius: '15px',
+              fontSize: '11px',
               fontWeight: 'bold',
               border: `2px solid ${getColor()}`,
               color: gameState === 'finished' ? getColor() : '#2c3e50',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-              whiteSpace: 'nowrap'
+              boxShadow: '0 3px 10px rgba(0,0,0,0.3)',
+              whiteSpace: 'nowrap',
+              backdropFilter: 'blur(5px)'
             }}
           >
             {gameState === 'finished' && (isCorrect ? '✓ ' : '✗ ')}
@@ -313,33 +264,32 @@ function BonePoint({
         </Html>
       )}
 
-      {/* Connection line to center */}
-      <Html
-        position={[0, 0, 0]}
-        style={{ pointerEvents: 'none' }}
-      >
-        <div
-          style={{
-            position: 'absolute',
-            width: '2px',
-            height: '40px',
-            background: `linear-gradient(to bottom, ${getColor()}, transparent)`,
-            transform: 'translateX(-1px) translateY(-20px)',
-            opacity: 0.6
-          }}
-        />
-      </Html>
+      {/* Connection line indicator */}
+      {userAnswer && (
+        <mesh position={[0, 0.04, 0]} rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry args={[0.001, 0.001, 0.08, 4]} />
+          <meshBasicMaterial color={getColor()} transparent opacity={0.5} />
+        </mesh>
+      )}
     </group>
   );
 }
 
 // Scene Setup Component
 function SceneSetup() {
-  const { scene } = useThree();
+  const { scene, camera } = useThree();
   
   useEffect(() => {
-    scene.fog = new THREE.Fog(0xf0f0f0, 5, 15);
-  }, [scene]);
+    // Enhanced fog for better depth perception
+    scene.fog = new THREE.Fog(0x1a1a2e, 3, 12);
+    
+    // Optimize camera settings
+    if (camera instanceof THREE.PerspectiveCamera) {
+      camera.near = 0.1;
+      camera.far = 1000;
+      camera.updateProjectionMatrix();
+    }
+  }, [scene, camera]);
 
   return null;
 }
@@ -347,7 +297,6 @@ function SceneSetup() {
 const Block: React.FC<BlockProps> = ({ title = "Anatomie 3D - Reconnaissance des Os", description }) => {
   const [gameState, setGameState] = useState<'playing' | 'finished'>('playing');
   const [userAnswers, setUserAnswers] = useState<{ [key: string]: string }>({});
-  const [draggedLabel, setDraggedLabel] = useState<string | null>(null);
   const [availableLabels, setAvailableLabels] = useState<string[]>(
     bones.map(bone => bone.name).sort(() => Math.random() - 0.5)
   );
@@ -471,23 +420,34 @@ const Block: React.FC<BlockProps> = ({ title = "Anatomie 3D - Reconnaissance des
         }}>
           <Canvas
             shadows
-            camera={{ position: [3, 2, 3], fov: 50 }}
+            camera={{ position: [2, 1, 2], fov: 50 }}
             style={{ background: 'transparent' }}
+            gl={{ 
+              antialias: true, 
+              alpha: true,
+              powerPreference: "high-performance"
+            }}
           >
             <SceneSetup />
             
-            {/* Lighting */}
-            <ambientLight intensity={0.4} />
+            {/* Enhanced Lighting */}
+            <ambientLight intensity={0.5} />
             <directionalLight
-              position={[10, 10, 5]}
-              intensity={1}
+              position={[8, 8, 5]}
+              intensity={1.2}
               castShadow
               shadow-mapSize-width={2048}
               shadow-mapSize-height={2048}
+              shadow-camera-far={50}
+              shadow-camera-left={-10}
+              shadow-camera-right={10}
+              shadow-camera-top={10}
+              shadow-camera-bottom={-10}
             />
-            <pointLight position={[-10, -10, -5]} intensity={0.3} />
+            <pointLight position={[-5, -5, -5]} intensity={0.4} color="#ffffff" />
+            <pointLight position={[5, 5, 5]} intensity={0.3} color="#e3f2fd" />
 
-            {/* 3D Skeleton Model with Safe Loading */}
+            {/* 3D Skeleton Model */}
             <SafeSkeletonModel modelUrl="https://content.mext.app/uploads/c51d7e81-bf01-477e-93b2-61951d133344.glb" />
             
             {/* Interactive Bone Points */}
@@ -505,7 +465,7 @@ const Block: React.FC<BlockProps> = ({ title = "Anatomie 3D - Reconnaissance des
                 {/* Selection indicator */}
                 {selectedBone === bone.id && (
                   <mesh position={bone.position}>
-                    <ringGeometry args={[0.08, 0.1, 16]} />
+                    <ringGeometry args={[0.06, 0.08, 16]} />
                     <meshBasicMaterial color="#f39c12" transparent opacity={0.8} />
                   </mesh>
                 )}
@@ -516,7 +476,7 @@ const Block: React.FC<BlockProps> = ({ title = "Anatomie 3D - Reconnaissance des
                   onClick={() => gameState === 'playing' && setSelectedBone(bone.id)}
                   visible={false}
                 >
-                  <sphereGeometry args={[0.1]} />
+                  <sphereGeometry args={[0.08]} />
                 </mesh>
               </group>
             ))}
@@ -525,9 +485,11 @@ const Block: React.FC<BlockProps> = ({ title = "Anatomie 3D - Reconnaissance des
               enablePan={true}
               enableZoom={true}
               enableRotate={true}
-              minDistance={1}
-              maxDistance={8}
-              maxPolarAngle={Math.PI}
+              minDistance={1.5}
+              maxDistance={6}
+              maxPolarAngle={Math.PI * 0.9}
+              minPolarAngle={Math.PI * 0.1}
+              target={[0, 0, 0]}
             />
           </Canvas>
 
