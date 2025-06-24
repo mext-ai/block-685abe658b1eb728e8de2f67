@@ -32,25 +32,152 @@ const bones: Bone[] = [
   { id: 'fibula', name: 'Péroné', position: [0.15, -0.8, -0.05] }
 ];
 
-// Skeleton Model Component
-function SkeletonModel({ modelUrl }: { modelUrl: string }) {
-  const gltf = useGLTF(modelUrl);
+// Fallback Skeleton Component (basic geometric skeleton)
+function FallbackSkeleton() {
   const meshRef = useRef<THREE.Group>(null);
 
   useFrame((state) => {
     if (meshRef.current) {
-      // Subtle rotation animation
+      meshRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.3) * 0.1;
+    }
+  });
+
+  return (
+    <group ref={meshRef} position={[0, -0.5, 0]} scale={[0.8, 0.8, 0.8]}>
+      {/* Basic geometric skeleton */}
+      {/* Head */}
+      <mesh position={[0, 1.7, 0]}>
+        <sphereGeometry args={[0.12, 16, 16]} />
+        <meshStandardMaterial color="#f0f0f0" />
+      </mesh>
+      
+      {/* Spine */}
+      <mesh position={[0, 0.8, 0]}>
+        <cylinderGeometry args={[0.03, 0.03, 1.8, 8]} />
+        <meshStandardMaterial color="#e0e0e0" />
+      </mesh>
+      
+      {/* Rib cage */}
+      {[0.2, 0.4, 0.6].map((y, i) => (
+        <group key={i}>
+          <mesh position={[0.3, 1.2 - y, 0]} rotation={[0, 0, -0.3]}>
+            <torusGeometry args={[0.25, 0.02, 4, 12]} />
+            <meshStandardMaterial color="#d0d0d0" />
+          </mesh>
+          <mesh position={[-0.3, 1.2 - y, 0]} rotation={[0, 0, 0.3]}>
+            <torusGeometry args={[0.25, 0.02, 4, 12]} />
+            <meshStandardMaterial color="#d0d0d0" />
+          </mesh>
+        </group>
+      ))}
+      
+      {/* Arms */}
+      <mesh position={[-0.4, 1.0, 0]}>
+        <cylinderGeometry args={[0.03, 0.03, 0.6, 8]} />
+        <meshStandardMaterial color="#e0e0e0" />
+      </mesh>
+      <mesh position={[0.4, 1.0, 0]}>
+        <cylinderGeometry args={[0.03, 0.03, 0.6, 8]} />
+        <meshStandardMaterial color="#e0e0e0" />
+      </mesh>
+      
+      {/* Forearms */}
+      <mesh position={[-0.4, 0.6, 0]}>
+        <cylinderGeometry args={[0.025, 0.025, 0.5, 8]} />
+        <meshStandardMaterial color="#e0e0e0" />
+      </mesh>
+      <mesh position={[0.4, 0.6, 0]}>
+        <cylinderGeometry args={[0.025, 0.025, 0.5, 8]} />
+        <meshStandardMaterial color="#e0e0e0" />
+      </mesh>
+      
+      {/* Pelvis */}
+      <mesh position={[0, 0.2, 0]}>
+        <cylinderGeometry args={[0.15, 0.12, 0.2, 8]} />
+        <meshStandardMaterial color="#e0e0e0" />
+      </mesh>
+      
+      {/* Legs */}
+      <mesh position={[-0.1, -0.3, 0]}>
+        <cylinderGeometry args={[0.04, 0.04, 0.8, 8]} />
+        <meshStandardMaterial color="#e0e0e0" />
+      </mesh>
+      <mesh position={[0.1, -0.3, 0]}>
+        <cylinderGeometry args={[0.04, 0.04, 0.8, 8]} />
+        <meshStandardMaterial color="#e0e0e0" />
+      </mesh>
+      
+      {/* Shins */}
+      <mesh position={[-0.1, -0.8, 0]}>
+        <cylinderGeometry args={[0.035, 0.035, 0.6, 8]} />
+        <meshStandardMaterial color="#e0e0e0" />
+      </mesh>
+      <mesh position={[0.1, -0.8, 0]}>
+        <cylinderGeometry args={[0.035, 0.035, 0.6, 8]} />
+        <meshStandardMaterial color="#e0e0e0" />
+      </mesh>
+    </group>
+  );
+}
+
+// Skeleton Model Component with Error Handling
+function SkeletonModel({ modelUrl }: { modelUrl: string }) {
+  const [modelError, setModelError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const meshRef = useRef<THREE.Group>(null);
+
+  // Custom hook to handle GLB loading with error catching
+  const [gltf, setGltf] = useState<any>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    setIsLoading(true);
+    setModelError(null);
+
+    const loadModel = async () => {
+      try {
+        // Test if the URL is accessible first
+        const response = await fetch(modelUrl, { method: 'HEAD' });
+        if (!response.ok) {
+          throw new Error(`Model not found: ${response.status} ${response.statusText}`);
+        }
+
+        // If URL is accessible, load with useGLTF
+        const { useGLTF } = await import('@react-three/drei');
+        const gltfData = useGLTF(modelUrl);
+        
+        if (mounted) {
+          setGltf(gltfData);
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.warn('Failed to load 3D model:', error);
+        if (mounted) {
+          setModelError(error instanceof Error ? error.message : 'Failed to load model');
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadModel();
+
+    return () => {
+      mounted = false;
+    };
+  }, [modelUrl]);
+
+  useFrame((state) => {
+    if (meshRef.current) {
       meshRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.3) * 0.1;
     }
   });
 
   useEffect(() => {
-    if (gltf.scene) {
-      gltf.scene.traverse((child) => {
+    if (gltf?.scene) {
+      gltf.scene.traverse((child: any) => {
         if (child instanceof THREE.Mesh) {
           child.castShadow = true;
           child.receiveShadow = true;
-          // Enhance materials for better visibility
           if (child.material) {
             const material = child.material as THREE.MeshStandardMaterial;
             material.roughness = 0.3;
@@ -61,11 +188,86 @@ function SkeletonModel({ modelUrl }: { modelUrl: string }) {
     }
   }, [gltf]);
 
-  return (
-    <group ref={meshRef} position={[0, -1, 0]} scale={[1, 1, 1]}>
-      <primitive object={gltf.scene} />
-    </group>
-  );
+  // Show loading state
+  if (isLoading) {
+    return (
+      <Html center>
+        <div style={{ 
+          color: 'white', 
+          fontSize: '16px',
+          background: 'rgba(0,0,0,0.7)',
+          padding: '15px 20px',
+          borderRadius: '10px',
+          textAlign: 'center'
+        }}>
+          <div>🔄 Chargement du modèle 3D...</div>
+        </div>
+      </Html>
+    );
+  }
+
+  // Show error state with fallback
+  if (modelError) {
+    return (
+      <group>
+        <Html position={[0, 2.5, 0]} center>
+          <div style={{ 
+            color: '#f39c12', 
+            fontSize: '14px',
+            background: 'rgba(243, 156, 18, 0.2)',
+            padding: '10px 15px',
+            borderRadius: '8px',
+            textAlign: 'center',
+            border: '1px solid rgba(243, 156, 18, 0.5)',
+            maxWidth: '300px'
+          }}>
+            ⚠️ Modèle 3D indisponible<br/>
+            <small>Utilisation du squelette de base</small>
+          </div>
+        </Html>
+        <FallbackSkeleton />
+      </group>
+    );
+  }
+
+  // Show loaded model
+  if (gltf?.scene) {
+    return (
+      <group ref={meshRef} position={[0, -1, 0]} scale={[1, 1, 1]}>
+        <primitive object={gltf.scene} />
+      </group>
+    );
+  }
+
+  // Final fallback
+  return <FallbackSkeleton />;
+}
+
+// Error Boundary Component
+class SkeletonErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error?: Error }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.warn('3D Model Error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return <FallbackSkeleton />;
+    }
+
+    return this.props.children;
+  }
 }
 
 // Interactive Bone Point Component
@@ -330,8 +532,10 @@ const Block: React.FC<BlockProps> = ({ title = "Anatomie 3D - Reconnaissance des
                 </div>
               </Html>
             }>
-              {/* 3D Skeleton Model */}
-              <SkeletonModel modelUrl="https://content.mext.app/uploads/c51d7e81-bf01-477e-93b2-61951d133344.glb" />
+              {/* 3D Skeleton Model with Error Boundary */}
+              <SkeletonErrorBoundary>
+                <SkeletonModel modelUrl="https://content.mext.app/uploads/c51d7e81-bf01-477e-93b2-61951d133344.glb" />
+              </SkeletonErrorBoundary>
               
               {/* Interactive Bone Points */}
               {bones.map(bone => (
