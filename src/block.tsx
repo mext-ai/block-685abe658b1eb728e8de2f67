@@ -331,7 +331,7 @@ const Block: React.FC<BlockProps> = ({ title = "Anatomie 3D - Reconnaissance des
               </Html>
             }>
               {/* 3D Skeleton Model */}
-              <SkeletonModel modelUrl="https://mext-content-library.s3.eu-west-3.amazonaws.com/uploads/c51d7e81-bf01-477e-93b2-61951d133344.glb" />
+              <SkeletonModel modelUrl="https://content.mext.app/uploads/c51d7e81-bf01-477e-93b2-61951d133344.glb" />
               
               {/* Interactive Bone Points */}
               {bones.map(bone => (
